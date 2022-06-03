@@ -4,6 +4,7 @@ import pandas as pd
 import os
 import shutil
 from joblib import dump,load
+from collections import Counter
 from data_preprocess.database_connect import *
 from data_preprocess.get_user import saveUserActivePeriod,getModelUserPeriod,getPredictionUserPeriod
 from data_preprocess.get_detailed_data import getCountDataAndSave,getDCNDataAndSave,getReceivedDataAndSave
@@ -277,10 +278,16 @@ if __name__ == '__main__':
     prediction_file = prediction_data_dir+'\\repo_'+str(repo_id)+'\\normalized_data'
     # 测试二：根据生成的预测数据集文件，直接返回数据
     user_id_list,input_data = get_existed_prediction_data(prediction_file)
+    print(len(user_id_list))
+    print(input_data.shape)
 
     # 测试三：加载训练好的模型，对input_data进行预测
     model_path = '..\\prediction_models\\xgboost_models\\2022-06-03_15-16-04xgboost_best_model_roc_auc-120-0.0.joblib'
+    # model_path = '..\\prediction_models\\rf_models\\2022-06-03_15-11-48rf_best_model_roc_auc-120-0.0.joblib'
+    # model_path = '..\\prediction_models\\adaboost_models\\2022-06-03_15-15-13adaboost_best_model_roc_auc-120-0.0.joblib'
+    # model_path = '..\\prediction_models\\svm_models\\2022-06-03_15-06-53svm_best_model_roc_auc-120-0.0.joblib'
     model = load(model_path)
     y_pred = model.predict(input_data)
     for i in range(len(user_id_list)):
         print(user_id_list[i],'\t\t',y_pred[i])
+    print(Counter(y_pred))
