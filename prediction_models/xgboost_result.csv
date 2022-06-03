@@ -1,0 +1,12 @@
+repo_20,120,0.0,roc_auc,
+train accuracy,0.9949748743718593,
+train precision,0.9925,
+train recall,0.9974874371859297,
+train f1_score,0.9949874686716792,
+train auroc,0.9949748743718594,
+test accuracy,0.8947368421052632,
+test precision,0.9285714285714286,
+test recall,0.91,
+test f1_score,0.9191919191919193,
+test auroc,0.8876923076923078,
+
