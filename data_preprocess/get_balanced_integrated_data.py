@@ -40,8 +40,8 @@ def getSplitBanlancedDataAndSave(normalized_data_dir,save_dir,period_length, ove
     else:
         print('period length error!')
         return
-    filename1 = normalized_data_dir+'\\'+'churner_integration-'+str(period_length)+'-'+str(overlap_ratio)+'.csv'
-    filename2 = normalized_data_dir + '\\' + 'loyaler_integration-' + str(period_length) + '-' + str(
+    filename1 = normalized_data_dir+'/'+'churner_integration-'+str(period_length)+'-'+str(overlap_ratio)+'.csv'
+    filename2 = normalized_data_dir + '/' + 'loyaler_integration-' + str(period_length) + '-' + str(
         overlap_ratio) + '.csv'
 
     content1 = pd.read_csv(filename1).iloc[:,:col_count+2]
@@ -102,10 +102,10 @@ def getSplitBanlancedDataAndSave(normalized_data_dir,save_dir,period_length, ove
 
     output_df = pd.concat([pd.DataFrame(train_data_smote),pd.DataFrame(train_label_smote,columns=['label'])],axis=1)
     output_df = output_df.sample(frac=1,random_state=42).reset_index(drop=True)
-    output_filename = save_dir+'\\balanced_data_train-'+str(period_length)+'-'+str(overlap_ratio)+'.csv'
+    output_filename = save_dir+'/balanced_data_train-'+str(period_length)+'-'+str(overlap_ratio)+'.csv'
     output_df.to_csv(output_filename)
     output_df = pd.concat([pd.DataFrame(test_data),pd.DataFrame(test_label,columns=['label'])],axis=1)
-    output_filename = save_dir + '\\balanced_data_test-' + str(period_length) + '-' + str(overlap_ratio) + '.csv'
+    output_filename = save_dir + '/balanced_data_test-' + str(period_length) + '-' + str(overlap_ratio) + '.csv'
     output_df.to_csv(output_filename)
     print(Counter(train_label),Counter(train_label_smote),Counter(test_label))
 

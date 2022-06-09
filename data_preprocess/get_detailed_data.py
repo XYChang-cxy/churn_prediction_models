@@ -45,7 +45,7 @@ def getCountDataAndSave(repo_id,user_period_file,period_length,count_type,save_d
     else:
         user_type = user_period_file.split('\\')[-1].split('_')[1]
     filename = save_dir + '/' + user_type + '_' + count_type.replace(' ', '_') \
-               + user_period_file[user_period_file.split('/')[-1].find('-'):]
+               + user_period_file[user_period_file.rfind('-'):]
     print(filename)
 
     table_name = 'repo_' + count_type.replace(' ', '_')
@@ -107,7 +107,7 @@ def getDCNDataAndSave(repo_id,user_period_file,period_length,data_type,save_dir)
     else:
         user_type = user_period_file.split('\\')[-1].split('_')[1]
     filename = save_dir + '/' + user_type + '_' + data_type.replace(' ','_') \
-               + user_period_file[user_period_file.split('/')[-1].find('-'):]
+               + user_period_file[user_period_file.rfind('-'):]
     print(filename)
     with open(filename,'w',encoding='utf-8')as f:
         line = 'user_id,'
@@ -170,7 +170,7 @@ def getReceivedDataAndSave(repo_id,user_period_file,period_length,data_type,save
     else:
         user_type = user_period_file.split('\\')[-1].split('_')[1]
     filename = save_dir + '/' + user_type + '_received_' + data_type.replace(' ','_') \
-               + user_period_file[user_period_file.split('/')[-1].find('-'):]
+               + user_period_file[user_period_file.rfind('-'):]
     print(filename)
     with open(filename, 'w', encoding='utf-8')as f:
         line = 'user_id,'

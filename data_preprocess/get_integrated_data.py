@@ -64,10 +64,10 @@ def getIntegratedDataAndSave(detailed_data_dir, save_dir, user_type, period_leng
             filename2='loyalers_'+data_type.replace(' ','_')+'-'+str(period_length)+'-'+str(overlap_ratio)+'.csv'
         else:
             filename2 = 'churners_'+data_type.replace(' ','_')+'-'+str(period_length)+'.csv'
-        max_value,min_value = getMaxMinValues(detailed_data_dir+'\\'+filename,detailed_data_dir+'\\'+filename2)
+        max_value,min_value = getMaxMinValues(detailed_data_dir+'/'+filename,detailed_data_dir+'/'+filename2)
         print(filename,max_value,min_value)######################3
 
-        with open(detailed_data_dir+'\\'+filename,'r',encoding='utf-8')as f:
+        with open(detailed_data_dir+'/'+filename,'r',encoding='utf-8')as f:
             f.readline()
             index = 0
             for line in f.readlines():
@@ -145,13 +145,13 @@ def getIntegratedPredDataAndSave(detailed_data_dir, save_dir, period_length,trai
         filename = data_filename[data_type]
 
         # 获取对应类型数据（包含训练集和待预测样本）的最大值和最小值
-        max_value,min_value = getMaxMinValues(detailed_data_dir+'\\'+filename)
+        max_value,min_value = getMaxMinValues(detailed_data_dir+'/'+filename)
         max_min = train_max_min[data_type]
         max_value,min_value = max(max_value,max_min[0]),min(min_value,max_min[1])  # ************
 
         print(filename,max_value,min_value)######################
 
-        with open(detailed_data_dir+'\\'+filename,'r',encoding='utf-8')as f:
+        with open(detailed_data_dir+'/'+filename,'r',encoding='utf-8')as f:
             f.readline()
             index = 0
             for line in f.readlines():

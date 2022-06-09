@@ -24,19 +24,20 @@ data_type_list = [
         'received review comment'
     ]
 
-train_data_dir = 'train_data'
-prediction_data_dir = 'prediction_data'
+'''train_data_dir = 'train_data'
+prediction_data_dir = 'prediction_data' '''
 
 
 # 获取用于模型训练的数据，该函数会在train_data文件夹创建相应数据文件，无返回值
 # repo_id: 仓库id
+# train_data_dir: 存储用于训练模型的数据的文件夹
 # period_length: 输入数据的时间跨度，目前仅支持120天或30天
 # overlap_ratio: 负样本（忠诚开发者数据）采样区间重合度，默认为0.0,即不重合
 # churn_limit_weeks: 流失期限，默认14周
 # train_end_time: 用于获取训练数据的截止时间，（开始时间是仓库创建时间）
 # continue_runing: 是否在处理数据过程中不间断运行，默认为True
 # time_threshold_percentile: 用于划分开发者的百分位数，默认为80，即剔除活动时间少于第80百分位数的开发者
-def train_data_preprocess(repo_id,period_length=120,overlap_ratio=0.0,churn_limit_weeks=14,
+def train_data_preprocess(repo_id,train_data_dir,period_length=120,overlap_ratio=0.0,churn_limit_weeks=14,
                           train_end_time = '2022-01-01',continue_running=False,
                           time_threshold_percentile=80):
     user_type_list = ['churner', 'loyaler']
@@ -47,13 +48,13 @@ def train_data_preprocess(repo_id,period_length=120,overlap_ratio=0.0,churn_limi
     print('**************************Data Preprocess**************************')
     print('\nStep1: make directories.')
     # ① 为目标仓库创建存储数据的文件夹
-    repo_data_dir = train_data_dir+'\\repo_'+str(repo_id)
-    if not os.path.exists(repo_data_dir+'\\detailed_data'):
-        os.makedirs(repo_data_dir+'\\detailed_data')
-    if not os.path.exists(repo_data_dir+'\\normalized_data'):
-        os.makedirs(repo_data_dir+'\\normalized_data')
-    if not os.path.exists(repo_data_dir+'\\split_balanced_data'):
-        os.makedirs(repo_data_dir+'\\split_balanced_data')
+    repo_data_dir = train_data_dir+'/repo_'+str(repo_id)
+    if not os.path.exists(repo_data_dir+'/detailed_data'):
+        os.makedirs(repo_data_dir+'/detailed_data')
+    if not os.path.exists(repo_data_dir+'/normalized_data'):
+        os.makedirs(repo_data_dir+'/normalized_data')
+    if not os.path.exists(repo_data_dir+'/split_balanced_data'):
+        os.makedirs(repo_data_dir+'/split_balanced_data')
 
 
     if continue_running:
@@ -75,7 +76,7 @@ def train_data_preprocess(repo_id,period_length=120,overlap_ratio=0.0,churn_limi
     print('\nStep3: get users and correspond period for model training.')
     # ③ 获取剔除不重要开发者（活动时间少于第90百分位数）后，分成churner和loyaler两部分，并生成重要开发者的取样区间
     for user_type in user_type_list:
-        getModelUserPeriod(repo_id, user_type, repo_data_dir, repo_data_dir + '\\' + str(repo_id) + '_user_active_period.csv',
+        getModelUserPeriod(repo_id, user_type, repo_data_dir, repo_data_dir + '/' + str(repo_id) + '_user_active_period.csv',
                            churn_limit_weeks,period_length,overlap_ratio,time_threshold=-1)
 
     if continue_running:
@@ -94,14 +95,14 @@ def train_data_preprocess(repo_id,period_length=120,overlap_ratio=0.0,churn_limi
                 overlap_ratio) + '.csv'
         for data_type in data_type_list:
             if data_type == 'betweeness' or data_type == 'weighted degree':
-                getDCNDataAndSave(repo_id, repo_data_dir + '\\' + period_filename, period_length, data_type,
-                                  repo_data_dir + '\\detailed_data')
+                getDCNDataAndSave(repo_id, repo_data_dir + '/' + period_filename, period_length, data_type,
+                                  repo_data_dir + '/detailed_data')
             elif data_type.find('received') != -1:
-                getReceivedDataAndSave(repo_id, repo_data_dir + '\\' + period_filename, period_length, data_type[9:],
-                                       repo_data_dir + '\\detailed_data')
+                getReceivedDataAndSave(repo_id, repo_data_dir + '/' + period_filename, period_length, data_type[9:],
+                                       repo_data_dir + '/detailed_data')
             else:
-                getCountDataAndSave(repo_id, repo_data_dir + '\\' + period_filename, period_length, data_type,
-                                    repo_data_dir + '\\detailed_data')
+                getCountDataAndSave(repo_id, repo_data_dir + '/' + period_filename, period_length, data_type,
+                                    repo_data_dir + '/detailed_data')
 
     if continue_running:
         s = 'Y'
@@ -112,7 +113,7 @@ def train_data_preprocess(repo_id,period_length=120,overlap_ratio=0.0,churn_limi
     print('\nStep5: get integrated and normalized data.')
     # ⑤ 根据详细数据生成整合的标准化后的数据
     for user_type in user_type_list:
-        getIntegratedDataAndSave(repo_data_dir + '\\detailed_data', repo_data_dir + '\\normalized_data',
+        getIntegratedDataAndSave(repo_data_dir + '/detailed_data', repo_data_dir + '/normalized_data',
                                  user_type, period_length, overlap_ratio, data_type_list)
 
     if continue_running:
@@ -122,19 +123,21 @@ def train_data_preprocess(repo_id,period_length=120,overlap_ratio=0.0,churn_limi
     if s != 'Y' and s != 'y' and s != '':
         return
     print('\nStep6: get balanced data.')
-    getSplitBanlancedDataAndSave(repo_data_dir + '\\normalized_data', repo_data_dir + '\\split_balanced_data',
+    getSplitBanlancedDataAndSave(repo_data_dir + '/normalized_data', repo_data_dir + '/split_balanced_data',
                                     period_length, overlap_ratio, data_type_list,1,split_ratio=0.8)
     print('Data preprocessing finished.')
 
 
 # 获取近期需要预测的开发者的数据，该函数会在prediction_data文件夹创建相应数据文件，并返回可输入模型的数据
 # repo_id: 仓库id
+# train_data_dir: 存储用于训练模型的数据的文件夹
+# prediction_data_dir: 存储用于模型预测的数据的文件夹
 # period_length: 输入数据的时间跨度，目前仅支持120天或30天
 # churn_limit_weeks: 流失期限，默认14周
 # time_threshold_days: 剔除临时开发者的活动时间阈值，默认28天
 # continue_runing: 是否在处理数据过程中不间断运行，默认为True
 # 返回值：需要预测的user_id列表，和对应的模型输入数据列表
-def prediction_data_preprocess(repo_id,period_length=120,churn_limit_weeks=14,time_threshold_days=28,
+def prediction_data_preprocess(repo_id,train_data_dir,prediction_data_dir,period_length=120,churn_limit_weeks=14,time_threshold_days=28,
                                continue_running=True):
 
     repo_info = getRepoInfoFromTable(repo_id,['created_at'])
@@ -151,12 +154,12 @@ def prediction_data_preprocess(repo_id,period_length=120,churn_limit_weeks=14,ti
     print('**************************Data Preprocess For Prediction**************************')
     print('\nStep1: make directories.')
     # ① 为目标仓库创建存储数据的文件夹
-    repo_data_dir = prediction_data_dir+'\\repo_'+str(repo_id)
+    repo_data_dir = prediction_data_dir+'/repo_'+str(repo_id)
     # shutil.rmtree(repo_data_dir)  # 获取新数据前先将旧数据删除
-    if not os.path.exists(repo_data_dir+'\\detailed_data'):
-        os.makedirs(repo_data_dir+'\\detailed_data')
-    if not os.path.exists(repo_data_dir+'\\normalized_data'):
-        os.makedirs(repo_data_dir+'\\normalized_data')
+    if not os.path.exists(repo_data_dir+'/detailed_data'):
+        os.makedirs(repo_data_dir+'/detailed_data')
+    if not os.path.exists(repo_data_dir+'/normalized_data'):
+        os.makedirs(repo_data_dir+'/normalized_data')
 
     if continue_running:
         s = 'Y'
@@ -176,7 +179,7 @@ def prediction_data_preprocess(repo_id,period_length=120,churn_limit_weeks=14,ti
         return
     print('\nStep3: get users and correspond period for model training.')
     # ③ 获取剔除不重要开发者（活动时间少于第90百分位数）后，分成churner和loyaler两部分，并生成重要开发者的取样区间
-    getPredictionUserPeriod(repo_id,repo_data_dir,repo_data_dir+'\\'+str(repo_id)+'_user_active_period.csv',period_length,
+    getPredictionUserPeriod(repo_id,repo_data_dir,repo_data_dir+'/'+str(repo_id)+'_user_active_period.csv',period_length,
                             time_threshold_days)
 
     if continue_running:
@@ -190,14 +193,14 @@ def prediction_data_preprocess(repo_id,period_length=120,churn_limit_weeks=14,ti
     period_filename = 'repo_users_period-' + str(period_length) + '.csv'
     for data_type in data_type_list:
         if data_type == 'betweeness' or data_type == 'weighted degree':
-            getDCNDataAndSave(repo_id, repo_data_dir + '\\' + period_filename, period_length, data_type,
-                              repo_data_dir + '\\detailed_data')
+            getDCNDataAndSave(repo_id, repo_data_dir + '/' + period_filename, period_length, data_type,
+                              repo_data_dir + '/detailed_data')
         elif data_type.find('received') != -1:
-            getReceivedDataAndSave(repo_id, repo_data_dir + '\\' + period_filename, period_length, data_type[9:],
-                                   repo_data_dir + '\\detailed_data')
+            getReceivedDataAndSave(repo_id, repo_data_dir + '/' + period_filename, period_length, data_type[9:],
+                                   repo_data_dir + '/detailed_data')
         else:
-            getCountDataAndSave(repo_id, repo_data_dir + '\\' + period_filename, period_length, data_type,
-                                repo_data_dir + '\\detailed_data')
+            getCountDataAndSave(repo_id, repo_data_dir + '/' + period_filename, period_length, data_type,
+                                repo_data_dir + '/detailed_data')
 
     if continue_running:
         s = 'Y'
@@ -207,16 +210,16 @@ def prediction_data_preprocess(repo_id,period_length=120,churn_limit_weeks=14,ti
         return
     print('\nStep5: get integrated and normalized data.')
     # ⑤ 根据详细数据生成整合的标准化后的数据
-    train_detailed_dir = train_data_dir + '\\repo_' + str(repo_id) + '\\detailed_data'
+    train_detailed_dir = train_data_dir + '/repo_' + str(repo_id) + '/detailed_data'
     if not os.path.exists(train_detailed_dir):######################### 后续完成模型训练后需要删除
-        train_detailed_dir = 'data\\repo_20\\part_all\\detailed_data'
+        train_detailed_dir = 'data/repo_20/part_all/detailed_data'
     train_max_min = getTrainMaxMin(train_detailed_dir,period_length)  # 训练集中不同类型数据对应的最大值和最小值
     print(train_max_min)
-    getIntegratedPredDataAndSave(repo_data_dir+'\\detailed_data',repo_data_dir+'\\normalized_data',period_length,
+    getIntegratedPredDataAndSave(repo_data_dir+'/detailed_data',repo_data_dir+'/normalized_data',period_length,
                                  train_max_min,data_type_list)
 
     print('Data preprocessing finished.')
-    return get_existed_prediction_data(repo_data_dir+'\\normalized_data')
+    return get_existed_prediction_data(repo_data_dir+'/normalized_data')
 
 
 # 获取训练集各类数据的最大值和最小值
@@ -237,7 +240,7 @@ def getTrainMaxMin(train_detailed_dir,period_length,overlap_ratio=0.0):
         filename = data_filename[data_type]
         filename2 = 'loyalers_' + data_type.replace(' ', '_') + '-' + str(period_length) + '-' + str(
             overlap_ratio) + '.csv'
-        max_val,min_val = getMaxMinValues(train_detailed_dir+'\\'+filename,train_detailed_dir+'\\'+filename2)
+        max_val,min_val = getMaxMinValues(train_detailed_dir+'/'+filename,train_detailed_dir+'/'+filename2)
         train_max_min[data_type]=[max_val,min_val]
     return train_max_min
 
@@ -248,7 +251,7 @@ def get_existed_prediction_data(file_path):
     if file_path.find('.csv')==-1:
         filenames = os.listdir(file_path)
         if len(filenames)==1:
-            file_path = file_path+'\\'+filenames[0]
+            file_path = file_path+'/'+filenames[0]
         else:
             print('Data file is ambiguous or not found! Please check the file_path!')
     period_length = int(file_path[:-4].split('-')[-1])
@@ -270,22 +273,26 @@ if __name__ == '__main__':
     period_length=120
     churn_limit_weeks = 14
     time_threshold_days = 28
-    # 测试一：生成预测数据集，并返回
-    # user_id_list,input_data = prediction_data_preprocess(repo_id,period_length,churn_limit_weeks,time_threshold_days)
-    # print(user_id_list)
-    # print(input_data)
+    train_data_dir = 'train_data'
+    prediction_data_dir = 'prediction_data'
 
-    prediction_file = prediction_data_dir+'\\repo_'+str(repo_id)+'\\normalized_data'
+    # 测试一：生成预测数据集，并返回
+    user_id_list,input_data = prediction_data_preprocess(repo_id,train_data_dir,prediction_data_dir,
+                                                         period_length,churn_limit_weeks,time_threshold_days)
+    print(user_id_list)
+    print(input_data)
+
+    prediction_file = prediction_data_dir+'/repo_'+str(repo_id)+'/normalized_data'
     # 测试二：根据生成的预测数据集文件，直接返回数据
-    user_id_list,input_data = get_existed_prediction_data(prediction_file)
+    # user_id_list,input_data = get_existed_prediction_data(prediction_file)
     print(len(user_id_list))
     print(input_data.shape)
 
     # 测试三：加载训练好的模型，对input_data进行预测
-    model_path = '..\\prediction_models\\xgboost_models\\2022-06-03_15-16-04xgboost_best_model_roc_auc-120-0.0.joblib'
-    # model_path = '..\\prediction_models\\rf_models\\2022-06-03_15-11-48rf_best_model_roc_auc-120-0.0.joblib'
-    # model_path = '..\\prediction_models\\adaboost_models\\2022-06-03_15-15-13adaboost_best_model_roc_auc-120-0.0.joblib'
-    # model_path = '..\\prediction_models\\svm_models\\2022-06-03_15-06-53svm_best_model_roc_auc-120-0.0.joblib'
+    model_path = '../prediction_models/xgboost_models/2022-06-03_15-16-04xgboost_best_model_roc_auc-120-0.0.joblib'
+    # model_path = '../prediction_models/rf_models/2022-06-03_15-11-48rf_best_model_roc_auc-120-0.0.joblib'
+    # model_path = '../prediction_models/adaboost_models/2022-06-03_15-15-13adaboost_best_model_roc_auc-120-0.0.joblib'
+    # model_path = '../prediction_models/svm_models/2022-06-03_15-06-53svm_best_model_roc_auc-120-0.0.joblib'
     model = load(model_path)
     y_pred = model.predict(input_data)
     for i in range(len(user_id_list)):

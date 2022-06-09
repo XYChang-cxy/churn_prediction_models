@@ -20,7 +20,6 @@ def getRepoInfoFromTable(repo_id,attr_list, table_name='churn_search_repos_final
     return ret_list
 
 
-
 # 根据仓库repo_id和时间段来获取仓库的具体信息
 # attr_list: 可以包含'user_id','issue_number','pull_number','pull_id'等
 # repo_id：仓库id
