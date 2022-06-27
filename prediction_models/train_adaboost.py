@@ -4,6 +4,8 @@ from sklearn.metrics import accuracy_score,roc_auc_score,precision_score,recall_
 from sklearn.model_selection import train_test_split,GridSearchCV
 from sklearn.ensemble import AdaBoostClassifier
 from joblib import dump, load
+import shutil
+import os
 from prediction_models.train_svm import getRandomIndex,getModelData
 import matplotlib.pyplot as plt
 import matplotlib
@@ -79,7 +81,7 @@ def trainMyAdaBoost(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,
 
 def trainAdaBoost(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12,
                   dt_max_depth=1,n_estimators=50,learning_rate=1.0,random_state=42,
-                  save_dir='adaboost_models'):
+                  save_dir='adaboost_models',if_save=True):
     train_data, test_data, train_label, test_label = getModelData(split_balanced_data_dir, period_length, overlap_ratio,
                                                                   data_type_count)
     model = AdaBoostClassifier(base_estimator=DecisionTreeClassifier(max_depth=dt_max_depth,random_state=1),
@@ -101,14 +103,15 @@ def trainAdaBoost(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,da
     print('Accuracy: %.4f' % accuracy_score(test_label, y_pred))
     print('AUC: %.4f' % roc_auc_score(test_label, y_pred))
 
-    s = input('Do you want to save this model?[Y/n]')
-    if s == 'Y' or s == 'y' or s == '':
+    if if_save:
+        shutil.rmtree(save_dir)
+        os.mkdir(save_dir)
         model_filename = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) + 'adaboost_model.joblib'
-        dump(model, save_dir + '\\' + model_filename)
+        dump(model, save_dir + '/' + model_filename)
 
 
 def gridSearchForAdaBoost(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12,scoring='roc_auc',
-                          save_dir='adaboost_models',if_save=True):
+                          work_dir='.',save_dir='adaboost_models',if_save=True):
     train_data, test_data, train_label, test_label = getModelData(split_balanced_data_dir, period_length, overlap_ratio,
                                                                   data_type_count)
     model = AdaBoostClassifier(learning_rate=0.1,random_state=42)
@@ -162,8 +165,11 @@ def gridSearchForAdaBoost(split_balanced_data_dir,period_length=120,overlap_rati
 
     train_pred = best_model.predict(train_data)
 
+    local_time = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime())
+
     ################################################################################3
-    with open('adaboost_result.csv', 'a', encoding='utf-8')as f:
+    with open(work_dir+'/adaboost_result.csv', 'a', encoding='utf-8')as f:
+        f.write('time: '+local_time+'\n')
         tmp_index = split_balanced_data_dir.find('repo')
         f.write(split_balanced_data_dir[tmp_index:tmp_index+7]+','+
                 str(period_length) + ',' + str(overlap_ratio) +','+str(scoring)+ ',\n')
@@ -178,20 +184,45 @@ def gridSearchForAdaBoost(split_balanced_data_dir,period_length=120,overlap_rati
         f.write('test recall,' + str(recall_score(test_label, test_pred)) + ',\n')
         f.write('test f1_score,' + str(f1_score(test_label, test_pred, average='binary')) + ',\n')
         f.write('test auroc,' + str(roc_auc_score(test_label, test_pred)) + ',\n')
-        # f.write('dt,'+str(dt)+',\n')
-        # f.write('n_estimators,'+str(n_estimators)+',\n')
-        # f.write('learning_rate,'+str(learning_rate)+',\n')
         f.write('\n')
-    #################################################################################
+    with open(work_dir+'/model_params/adaboost_params.txt','w',encoding='utf-8')as f:
+        f.write('time:' + local_time + '\n')
+        f.write('n_estimators:'+str(n_estimators)+'\n')
+        f.write('dt_max_depth:'+str(dt).strip(')').split('=')[1]+'\n')
+        f.write('learning_rate:'+str(learning_rate)+'\n')
 
     if if_save:
         s = 'Y'
     else:
         s = input('Do you want to save this model?[Y/n]')
     if s == 'Y' or s == 'y' or s == '':
+        shutil.rmtree(save_dir)
+        os.mkdir(save_dir)
         model_filename = time.strftime('%Y-%m-%d_%H-%M-%S',
                                        time.localtime()) + 'adaboost_best_model_' + scoring + \
                          '-'+str(period_length)+'-'+str(overlap_ratio)+'.joblib'
-        dump(best_model, save_dir + '\\' + model_filename)
+        dump(best_model, save_dir + '/' + model_filename)
 
     return dt,n_estimators,learning_rate
+
+
+# 训练AdaBoost模型的统一接口，可以选择grid_search调参或直接训练
+def train_adaboost(train_data_dir,repo_id,period_length=120,overlap_ratio=0.0,data_type_count=12,scoring='roc_auc',
+                   grid_search_control=False,model_params_dir='model_params',prediction_work_dir='.',
+                   save_dir='adaboost_models',if_save=True):
+    split_balanced_data_dir = train_data_dir + '/repo_' + str(repo_id) + '/split_balanced_data'
+    if grid_search_control:
+        gridSearchForAdaBoost(split_balanced_data_dir, period_length, overlap_ratio, data_type_count, scoring,
+                              prediction_work_dir,save_dir,if_save)
+    else:
+        model_params_file = model_params_dir + '/adaboost_params.txt'
+        params_dict = dict()
+        with open(model_params_file, 'r', encoding='utf-8')as f:
+            f.readline()
+            for line in f.readlines():
+                params_dict[line.split(':')[0]]=line.strip('\n').split(':')[1]
+        n_estimators = int(params_dict['n_estimators'])
+        dt_max_depth = int(params_dict['dt_max_depth'])
+        learning_rate = float(params_dict['learning_rate'])
+        trainAdaBoost(split_balanced_data_dir,period_length,overlap_ratio,data_type_count,dt_max_depth,n_estimators,
+                      learning_rate,save_dir=save_dir,if_save=if_save)

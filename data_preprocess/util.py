@@ -2,8 +2,11 @@
 # import data_transformation
 import json
 
+train_fake_path = '../fake_data/train.json'
+predict_fake_path = '../fake_data/predict.json'
 
-f = open('new_json_2.json', 'r')
+# f = open('new_json_2.json', 'r')
+f = open(train_fake_path, 'r')
 content = f.read()
 hashmap = json.loads(content)
 f.close()

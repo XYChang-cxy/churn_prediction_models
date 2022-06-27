@@ -5,6 +5,8 @@ from sklearn.model_selection import KFold, cross_val_score
 from sklearn.model_selection import GridSearchCV
 from prediction_models.train_svm import getRandomIndex,getModelData
 from joblib import dump, load
+import shutil
+import os
 import matplotlib.pyplot as plt
 import matplotlib
 import xgboost as xgb
@@ -13,10 +15,10 @@ import pandas as pd
 import random
 
 
-def trainXGBoost(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12,
+def trainXGBoost(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12,other_params=None,
                  n_estimators=500,max_depth=6,min_child_weight=1,subsample=1,colsample_bytree=1,
                  gamma=0,reg_lambda=1,reg_alpha=0,eta=0.3,
-                 save_dir='xgboost_models'):
+                 save_dir='xgboost_models',if_save=True):
     train_data, test_data, train_label, test_label = getModelData(split_balanced_data_dir, period_length, overlap_ratio,
                                                                   data_type_count)
     for i in range(train_label.shape[0]):
@@ -26,18 +28,19 @@ def trainXGBoost(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,dat
         if test_label[i]==-1:
             test_label[i]=0
 
-    other_params = {
-        'eta': eta,
-        'n_estimators': n_estimators,
-        'gamma': gamma,
-        'max_depth': max_depth,
-        'min_child_weight': min_child_weight,
-        'colsample_bytree': colsample_bytree,
-        'subsample': subsample,
-        'reg_lambda': reg_lambda,
-        'reg_alpha': reg_alpha,
-        'seed': 33
-    }
+    if other_params == None:
+        other_params = {
+            'eta': eta,
+            'n_estimators': n_estimators,
+            'gamma': gamma,
+            'max_depth': max_depth,
+            'min_child_weight': min_child_weight,
+            'colsample_bytree': colsample_bytree,
+            'subsample': subsample,
+            'reg_lambda': reg_lambda,
+            'reg_alpha': reg_alpha,
+            'seed': 33
+        }
     model = xgb.XGBClassifier(**other_params)
     model.fit(train_data,train_label)
     y_pred = model.predict(train_data)
@@ -56,14 +59,15 @@ def trainXGBoost(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,dat
     print('Accuracy: %.4f' % accuracy_score(test_label, y_pred))
     print('AUC: %.4f' % roc_auc_score(test_label, y_pred))
 
-    s = input('Do you want to save this model?[Y/n]')
-    if s == 'Y' or s == 'y' or s == '':
+    if if_save:
+        shutil.rmtree(save_dir)
+        os.mkdir(save_dir)
         model_filename = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) + 'xgboost_model.joblib'
-        dump(model, save_dir + '\\' + model_filename)
+        dump(model, save_dir + '/' + model_filename)
 
 
 def gridSearchForXGBoost(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12,
-                         save_dir='xgboost_models',scoring='roc_auc',if_save=True):
+                         work_dir='.',save_dir='xgboost_models',scoring='roc_auc',if_save=True):
     train_data, test_data, train_label, test_label = getModelData(split_balanced_data_dir, period_length, overlap_ratio,
                                                                   data_type_count)
     for i in range(train_label.shape[0]):
@@ -238,8 +242,11 @@ def gridSearchForXGBoost(split_balanced_data_dir,period_length=120,overlap_ratio
 
     train_pred = best_model.predict(train_data)
 
+    local_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+
     ################################################################################3
-    with open('xgboost_result.csv','a',encoding='utf-8')as f:
+    with open(work_dir+'/xgboost_result.csv','a',encoding='utf-8')as f:
+        f.write('time: ' + local_time + '\n')
         tmp_index = split_balanced_data_dir.find('repo')
         f.write(split_balanced_data_dir[tmp_index:tmp_index + 7] + ',' +
                 str(period_length) + ',' + str(overlap_ratio) + ',' + str(scoring) + ',\n')
@@ -256,14 +263,45 @@ def gridSearchForXGBoost(split_balanced_data_dir,period_length=120,overlap_ratio
         f.write('test auroc,' + str(roc_auc_score(test_label, test_pred)) + ',\n')
         f.write('\n')
     #################################################################################
+    with open(work_dir+'/model_params/xgboost_params.txt','w',encoding='utf-8')as f:
+        f.write('time:' + local_time + '\n')
+        for key in other_params.keys():
+            f.write(str(key)+':'+str(other_params[key])+'\n')
 
     if if_save:
         s = 'Y'
     else:
         s = input('Do you want to save this model?[Y/n]')
     if s == 'Y' or s == 'y' or s == '':
+        shutil.rmtree(save_dir)
+        os.mkdir(save_dir)
         model_filename = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) + 'xgboost_best_model_'+scoring+\
                          '-'+str(period_length)+'-'+str(overlap_ratio)+'.joblib'
-        dump(best_model, save_dir + '\\' + model_filename)
+        dump(best_model, save_dir + '/' + model_filename)
 
     return other_params
+
+
+# 训练XGBoost模型的统一接口，可以选择grid_search调参或直接训练
+def train_xgboost(train_data_dir,repo_id,period_length=120,overlap_ratio=0.0,data_type_count=12,scoring='roc_auc',
+                   grid_search_control=False,model_params_dir='model_params',prediction_work_dir='.',
+                   save_dir='xgboost_models',if_save=True):
+    split_balanced_data_dir = train_data_dir + '/repo_' + str(repo_id) + '/split_balanced_data'
+    if grid_search_control:
+        gridSearchForXGBoost(split_balanced_data_dir, period_length, overlap_ratio, data_type_count,
+                             prediction_work_dir, save_dir, scoring, if_save)
+    else:
+        model_params_file = model_params_dir + '/xgboost_params.txt'
+        params_dict = dict()
+        with open(model_params_file, 'r', encoding='utf-8')as f:
+            f.readline()
+            for line in f.readlines():
+                param_name = line.split(':')[0]
+                if param_name == 'n_estimators' or param_name == 'min_child_weight' \
+                        or param_name == 'max_depth' or param_name=='seed':
+                    param_value = int(line.strip('\n').split(':')[1])
+                else:
+                    param_value = float(line.strip('\n').split(':')[1])
+                params_dict[param_name] = param_value
+        trainXGBoost(split_balanced_data_dir,period_length,overlap_ratio,data_type_count,params_dict,
+                     save_dir=save_dir,if_save=if_save)

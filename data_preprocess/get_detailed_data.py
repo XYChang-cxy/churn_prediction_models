@@ -40,14 +40,13 @@ def getCountDataAndSave(repo_id,user_period_file,period_length,count_type,save_d
             user_periods.append([int(items[0]),items[1],items[2]])
     f.close()
 
-    if user_period_file.find('/')!=-1:
-        user_type = user_period_file.split('/')[-1].split('_')[1]
-    else:
-        user_type = user_period_file.split('\\')[-1].split('_')[1]
-    filename = save_dir + '/' + user_type + '_' + count_type.replace(' ', '_') \
-               + user_period_file[user_period_file.rfind('-'):]
-    print(filename)
+    user_period_file = user_period_file.replace('\\', '/')
+    user_type = user_period_file.split('/')[-1].split('_')[1]
+    tmp_str = user_period_file[user_period_file.rfind('/') + 1:]
 
+    filename = save_dir + '/' + user_type + '_' + count_type.replace(' ', '_') \
+               + tmp_str[tmp_str.find('-'):]
+    print(filename)
     table_name = 'repo_' + count_type.replace(' ', '_')
     time_name = time_names[count_type]
 
@@ -102,12 +101,12 @@ def getDCNDataAndSave(repo_id,user_period_file,period_length,data_type,save_dir)
             user_periods.append([int(items[0]), items[1], items[2]])
     f.close()
 
-    if user_period_file.find('/') != -1:
-        user_type = user_period_file.split('/')[-1].split('_')[1]
-    else:
-        user_type = user_period_file.split('\\')[-1].split('_')[1]
+    user_period_file = user_period_file.replace('\\', '/')
+    user_type = user_period_file.split('/')[-1].split('_')[1]
+    tmp_str = user_period_file[user_period_file.rfind('/') + 1:]
+
     filename = save_dir + '/' + user_type + '_' + data_type.replace(' ','_') \
-               + user_period_file[user_period_file.rfind('-'):]
+               + tmp_str[tmp_str.find('-'):]
     print(filename)
     with open(filename,'w',encoding='utf-8')as f:
         line = 'user_id,'
@@ -165,12 +164,12 @@ def getReceivedDataAndSave(repo_id,user_period_file,period_length,data_type,save
             user_periods.append([int(items[0]), items[1], items[2]])
     f.close()
 
-    if user_period_file.find('/') != -1:
-        user_type = user_period_file.split('/')[-1].split('_')[1]
-    else:
-        user_type = user_period_file.split('\\')[-1].split('_')[1]
+    user_period_file=user_period_file.replace('\\','/')
+    user_type = user_period_file.split('/')[-1].split('_')[1]
+    tmp_str = user_period_file[user_period_file.rfind('/')+1:]
+
     filename = save_dir + '/' + user_type + '_received_' + data_type.replace(' ','_') \
-               + user_period_file[user_period_file.rfind('-'):]
+               + tmp_str[tmp_str.find('-'):]
     print(filename)
     with open(filename, 'w', encoding='utf-8')as f:
         line = 'user_id,'

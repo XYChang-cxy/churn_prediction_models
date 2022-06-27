@@ -10,3 +10,16 @@ test recall,0.91,
 test f1_score,0.9191919191919193,
 test auroc,0.8876923076923078,
 
+time: 2022-06-17 10:20:41
+repo_20,120,0.0,roc_auc,
+train accuracy,0.992462311557789,
+train precision,0.9875621890547264,
+train recall,0.9974874371859297,
+train f1_score,0.9925,
+train auroc,0.992462311557789,
+test accuracy,0.9078947368421053,
+test precision,0.93,
+test recall,0.93,
+test f1_score,0.93,
+test auroc,0.8976923076923078,
+

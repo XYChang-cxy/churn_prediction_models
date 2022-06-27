@@ -1,8 +1,8 @@
 from sklearn.metrics import accuracy_score,roc_auc_score,precision_score,recall_score,f1_score,classification_report
-from prediction_models.train_svm import trainSVM,gridSearchForSVM,getModelData
-from prediction_models.train_rf import trainRF,gridSearchForRF
-from prediction_models.train_xgboost import trainXGBoost,gridSearchForXGBoost
-from prediction_models.train_adaboost import trainMyAdaBoost,trainAdaBoost,gridSearchForAdaBoost
+from prediction_models.train_svm import *
+from prediction_models.train_rf import *
+from prediction_models.train_xgboost import *
+from prediction_models.train_adaboost import *
 import time
 from collections import Counter
 from joblib import dump, load
@@ -16,8 +16,8 @@ if __name__ == '__main__':
     # id = 25
     id_list = [20]
     for id in id_list:
-        split_balanced_data_dir = r'F:\MOOSE_cxy\churn_prediction\data_preprocess\data\repo_'\
-                                  +str(id)+'\part_all\split_balanced_data'
+        split_balanced_data_dir = 'F:/MOOSE_cxy/churn_prediction/data_preprocess/data/repo_'\
+                                  +str(id)+'/part_all/split_balanced_data'
         period_length = 120
         overlap_ratio = 0.0
         data_type_count = 9  # Gitee
@@ -44,21 +44,59 @@ if __name__ == '__main__':
         # split_balanced_data_dir = r'F:\MOOSE_cxy\developer_churn_prediction\churn_prediction\data_preprocess\data\repo_2\part_2\split_balanced_data'
 
         period_length_list = [120]#120,30
-        overlap_ratio_list = [0.0,0.5]
+        overlap_ratio_list = [0.0]
         scoring_list = ['roc_auc']#,'accuracy','precision'
         for scoring in scoring_list:
             for period in period_length_list:
                 for overlap in overlap_ratio_list:
-                    gridSearchForSVM(split_balanced_data_dir, period, overlap, data_type_count,scoring=scoring)
-                    gridSearchForRF(split_balanced_data_dir, period, overlap, data_type_count, scoring=scoring)
-                    time.sleep(10)
-                    gridSearchForAdaBoost(split_balanced_data_dir, period, overlap, data_type_count,
-                                          scoring=scoring)
-                    time.sleep(10)
-                    gridSearchForXGBoost(split_balanced_data_dir, period, overlap, data_type_count,
-                                         scoring=scoring)
-                    time.sleep(20)
+                    pass
+                    # gridSearchForSVM(split_balanced_data_dir, period, overlap, data_type_count,scoring=scoring)
+                    # gridSearchForRF(split_balanced_data_dir, period, overlap, data_type_count, scoring=scoring)
+                    # time.sleep(10)
+                    # gridSearchForAdaBoost(split_balanced_data_dir, period, overlap, data_type_count,
+                    #                       scoring=scoring)
+                    # time.sleep(10)
+                    # gridSearchForXGBoost(split_balanced_data_dir, period, overlap, data_type_count,
+                    #                      scoring=scoring)
+                    # time.sleep(20)
 
+    split_balanced_data_dir = '../data_preprocess/train_data/repo_8649239/split_balanced_data'
+    train_data, test_data, train_label, test_label = getModelData(split_balanced_data_dir, period_length, overlap_ratio,
+                                                                  data_type_count)
+    model_path = '../prediction_models/rf_models/2022-06-17_10-49-37rf_best_model_roc_auc-120-0.0.joblib'
+    model_type = model_path.split('/')[-1][19:].split('_')[0]
+    print(model_type)
+    if model_type == 'xgboost':
+        for i in range(train_label.shape[0]):
+            if train_label[i] == -1:
+                train_label[i] = 0
+        for i in range(test_label.shape[0]):
+            if test_label[i] == -1:
+                test_label[i] = 0
+
+    model = load(model_path)
+    train_pred = model.predict(train_data)
+    test_pred = model.predict(test_data)
+
+    for i in range(len(test_label)):
+        if test_label[i] != test_pred[i]:
+            print(test_label[i], test_pred[i])
+
+    print(Counter(test_label), Counter(test_pred))
+
+    print("训练集结果：")
+    print("accuracy score:\t", accuracy_score(train_label, train_pred))
+    print("auroc:\t", roc_auc_score(train_label, train_pred))
+    print("precision:\t", precision_score(train_label, train_pred))
+    print("recall:\t", recall_score(train_label, train_pred))
+    print("f1_score:\t", f1_score(train_label, train_pred, average='binary'))
+
+    print("\n测试集结果：")
+    print("accuracy score:\t", accuracy_score(test_label, test_pred))
+    print("auroc:\t", roc_auc_score(test_label, test_pred))
+    print("precision:\t", precision_score(test_label, test_pred))
+    print("recall:\t", recall_score(test_label, test_pred))
+    print("f1_score:\t", f1_score(test_label, test_pred, average='binary'))
 
     '''model_type = 'xgboost'  # svm,rf,xgboost,adaboost
     filenames = os.listdir(model_type+'_models')

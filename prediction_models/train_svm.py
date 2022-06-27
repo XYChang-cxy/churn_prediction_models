@@ -3,6 +3,8 @@ import numpy as np
 from sklearn.metrics import accuracy_score,roc_auc_score,precision_score,recall_score,f1_score,classification_report
 from sklearn.model_selection import train_test_split,GridSearchCV
 from joblib import dump, load
+import shutil
+import os
 import matplotlib.pyplot as plt
 import matplotlib
 import time
@@ -32,9 +34,9 @@ def getModelData(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,dat
         print('period length error!')
         return
 
-    data_filename_1 = split_balanced_data_dir + '\\balanced_data_train-' + str(period_length) + '-' + str(
+    data_filename_1 = split_balanced_data_dir + '/balanced_data_train-' + str(period_length) + '-' + str(
         overlap_ratio) + '.csv'
-    data_filename_2 = split_balanced_data_dir + '\\balanced_data_test-' + str(period_length) + '-' + str(
+    data_filename_2 = split_balanced_data_dir + '/balanced_data_test-' + str(period_length) + '-' + str(
         overlap_ratio) + '.csv'
 
     train_df = pd.read_csv(data_filename_1).iloc[:,1:col_count+2]
@@ -65,8 +67,8 @@ def getModelData(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,dat
 
 # SVM模型训练
 def trainSVM(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12,
-             kernel='rbf',C=1,gamma='auto',degree=3,
-             save_dir='svm_models'):
+             kernel='rbf',C=1.0,gamma='auto',degree=3,
+             save_dir='svm_models',if_save=True):
     train_data,test_data,train_label,test_label = getModelData(split_balanced_data_dir,period_length,overlap_ratio,
                                                                data_type_count)
     if kernel == 'rbf' or kernel == 'RBF':
@@ -109,16 +111,17 @@ def trainSVM(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,data_ty
             count += 1
     print(count)'''
 
-    s = input('Do you want to save this model?[Y/n]')
-    if s == 'Y' or s == 'y' or s == '':
+    if if_save:
+        shutil.rmtree(save_dir)
+        os.mkdir(save_dir)
         model_filename = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) + 'svm_model.joblib'
-        dump(classifier, save_dir + '\\' + model_filename)
+        dump(classifier, save_dir + '/' + model_filename)
 
 
 # GridSearch调参
 # https://blog.csdn.net/aliceyangxi1987/article/details/73769950
 def gridSearchForSVM(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12,
-                     scoring='roc_auc',save_dir='svm_models',if_save=True):
+                     scoring='roc_auc',work_dir='.',save_dir='svm_models',if_save=True):
     train_data, test_data, train_label, test_label = getModelData(split_balanced_data_dir, period_length, overlap_ratio,
                                                                   data_type_count)
     tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1e-4, 1e-3, 0.01, 0.1, 1, 5, 10],
@@ -172,8 +175,11 @@ def gridSearchForSVM(split_balanced_data_dir,period_length=120,overlap_ratio=0.0
 
         train_pred = best_model.predict(train_data)
 
+        local_time = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime())
+
         ################################################################################3
-        with open('svm_result.csv', 'a', encoding='utf-8')as f:
+        with open(work_dir+'/svm_result.csv', 'a', encoding='utf-8')as f:
+            f.write('time: ' + local_time + '\n')
             tmp_index = split_balanced_data_dir.find('repo')
             f.write(split_balanced_data_dir[tmp_index:tmp_index + 7] + ',' +
                     str(period_length) + ',' + str(overlap_ratio) + ',' + str(scoring) + ',\n')
@@ -190,17 +196,54 @@ def gridSearchForSVM(split_balanced_data_dir,period_length=120,overlap_ratio=0.0
             f.write('test auroc,' + str(roc_auc_score(test_label, test_pred)) + ',\n')
             f.write('\n')
         #################################################################################
+        with open(work_dir+'/model_params/svm_params.txt','w',encoding='utf-8')as f:
+            f.write('time:' + local_time + '\n')
+            for key in best_params_dict[scoring].keys():
+                f.write(str(key)+':'+str(best_params_dict[scoring][key])+'\n')
 
         if if_save:
             s = 'Y'
         else:
             s = input('Do you want to save this model?[Y/n]')
         if s == 'Y' or s == 'y' or s == '':
+            shutil.rmtree(save_dir)
+            os.mkdir(save_dir)
             model_filename = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) + 'svm_best_model_'+score+\
                              '-'+str(period_length)+'-'+str(overlap_ratio)+'.joblib'
-            dump(best_model, save_dir + '\\' + model_filename)
+            dump(best_model, save_dir + '/' + model_filename)
 
     return best_params_dict
+
+
+# 训练SVM模型的统一接口，可以选择grid_search调参或直接训练
+def train_svm(train_data_dir,repo_id,period_length=120,overlap_ratio=0.0,data_type_count=12,scoring='roc_auc',
+              grid_search_control=False,model_params_dir='model_params',prediction_work_dir='.',
+              save_dir='svm_models',if_save=True):
+    split_balanced_data_dir = train_data_dir+'/repo_'+str(repo_id)+'/split_balanced_data'
+    if grid_search_control:
+        gridSearchForSVM(split_balanced_data_dir,period_length,overlap_ratio,data_type_count,scoring,
+                         prediction_work_dir,save_dir,if_save)
+    else:
+        model_params_file = model_params_dir + '/svm_params.txt'
+        params_dict=dict()
+        with open(model_params_file,'r',encoding='utf-8')as f:
+            f.readline()
+            for line in f.readlines():
+                params_dict[line.split(':')[0]]=line.strip('\n').split(':')[1]
+        kernel = params_dict['kernel']
+        C = float(params_dict['C'])
+        if kernel == 'linear':
+            trainSVM(split_balanced_data_dir, period_length, overlap_ratio, data_type_count, kernel, C,
+                     save_dir=save_dir,
+                     if_save=if_save)
+        elif kernel == 'rbf':
+            gamma = float(params_dict['gamma'])
+            trainSVM(split_balanced_data_dir, period_length, overlap_ratio, data_type_count, kernel, C, gamma,
+                     save_dir=save_dir, if_save=if_save)
+        else:
+            degree = int(params_dict['degree'])
+            trainSVM(split_balanced_data_dir, period_length, overlap_ratio, data_type_count, kernel, C,
+                     degree=degree, save_dir=save_dir, if_save=if_save)
 
 
 if __name__ == '__main__':
@@ -209,5 +252,5 @@ if __name__ == '__main__':
     overlap_ratio = 0.0
     data_type_count = 12
     # gridSearchForSVM(split_balanced_data_dir,period_length,overlap_ratio,data_type_count)
-    trainSVM(split_balanced_data_dir,period_length,overlap_ratio,data_type_count)
-
+    # trainSVM(split_balanced_data_dir,period_length,overlap_ratio,data_type_count)
+    # train_svm('../data_preprocess/train_data',8649239,120,0.0,9,grid_search_control=False)

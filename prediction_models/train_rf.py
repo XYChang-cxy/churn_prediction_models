@@ -4,6 +4,8 @@ from sklearn.metrics import accuracy_score,roc_auc_score,precision_score,recall_
 from sklearn.model_selection import train_test_split,GridSearchCV
 from prediction_models.train_svm import getRandomIndex,getModelData
 from joblib import dump, load
+import shutil
+import os
 import matplotlib.pyplot as plt
 import matplotlib
 import time
@@ -13,7 +15,7 @@ import random
 
 def trainRF(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12,
             n_estimators=100,max_depth=None,min_samples_leaf=1,min_samples_split=2,max_features='sqrt',
-            save_dir='rf_models'):
+            save_dir='rf_models',if_save=True):
     train_data, test_data, train_label, test_label = getModelData(split_balanced_data_dir, period_length, overlap_ratio,
                                                                   data_type_count)
     model = RandomForestClassifier(n_estimators=n_estimators,max_depth=max_depth,min_samples_leaf=min_samples_leaf,
@@ -36,15 +38,16 @@ def trainRF(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,data_typ
     print('Accuracy: %.4f' % accuracy_score(test_label, y_pred))
     print('AUC: %.4f' % roc_auc_score(test_label, y_pred))
 
-    s = input('Do you want to save this model?[Y/n]')
-    if s == 'Y' or s == 'y' or s == '':
+    if if_save:
+        shutil.rmtree(save_dir)
+        os.mkdir(save_dir)
         model_filename = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) + 'rf_model.joblib'
-        dump(model, save_dir + '\\' + model_filename)
+        dump(model, save_dir + '/' + model_filename)
 
 
 # https://www.cnblogs.com/pinard/p/6160412.html
 def gridSearchForRF(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12,
-                    scoring='roc_auc',save_dir='rf_models',if_save=True):
+                    scoring='roc_auc',work_dir='.',save_dir='rf_models',if_save=True):
     train_data, test_data, train_label, test_label = getModelData(split_balanced_data_dir, period_length, overlap_ratio,
                                                                   data_type_count)
     # 对n_estimators进行网格搜索
@@ -113,8 +116,11 @@ def gridSearchForRF(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,
 
     train_pred = best_model.predict(train_data)
 
+    local_time = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime())
+
     ################################################################################3
-    with open('rf_result.csv', 'a', encoding='utf-8')as f:
+    with open(work_dir+'/rf_result.csv', 'a', encoding='utf-8')as f:
+        f.write('time: ' + local_time + '\n')
         tmp_index = split_balanced_data_dir.find('repo')
         f.write(split_balanced_data_dir[tmp_index:tmp_index + 7] + ',' +
                 str(period_length) + ',' + str(overlap_ratio) + ',' + str(scoring) + ',\n')
@@ -131,17 +137,48 @@ def gridSearchForRF(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,
         f.write('test auroc,' + str(roc_auc_score(test_label, test_pred)) + ',\n')
         f.write('\n')
     #################################################################################
+    with open(work_dir+'/model_params/rf_params.txt','w',encoding='utf-8')as f:
+        f.write('time:' + local_time + '\n')
+        f.write('n_estimators:'+str(best_estimators)+'\n')
+        f.write('max_depth:'+str(best_max_depth)+'\n')
+        f.write('min_samples_split:'+str(best_min_samples_split)+'\n')
+        f.write('min_samples_leaf:'+str(best_min_samples_leaf)+'\n')
+        f.write('max_features:'+str(best_max_features)+'\n')
 
     if if_save:
         s = 'Y'
     else:
         s = input('Do you want to save this model?[Y/n]')
     if s == 'Y' or s == 'y' or s == '':
+        shutil.rmtree(save_dir)
+        os.mkdir(save_dir)
         model_filename = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime()) + 'rf_best_model_'+scoring+\
                          '-'+str(period_length)+'-'+str(overlap_ratio)+'.joblib'
-        dump(best_model, save_dir + '\\' + model_filename)
+        dump(best_model, save_dir + '/' + model_filename)
 
     return best_estimators,best_max_depth,best_min_samples_split,best_min_samples_leaf,best_max_features
 
 
+# 训练RF模型的统一接口，可以选择grid_search调参或直接训练
+def train_rf(train_data_dir,repo_id,period_length=120,overlap_ratio=0.0,data_type_count=12,scoring='roc_auc',
+             grid_search_control=False,model_params_dir='model_params',prediction_work_dir='.',
+             save_dir='rf_models',if_save=True):
+    split_balanced_data_dir = train_data_dir + '/repo_' + str(repo_id) + '/split_balanced_data'
+    if grid_search_control:
+        gridSearchForRF(split_balanced_data_dir, period_length, overlap_ratio, data_type_count, scoring,
+                        prediction_work_dir, save_dir, if_save)
+    else:
+        model_params_file = model_params_dir + '/rf_params.txt'
+        params_dict = dict()
+        with open(model_params_file, 'r', encoding='utf-8')as f:
+            f.readline()
+            for line in f.readlines():
+                params_dict[line.split(':')[0]] = line.strip('\n').split(':')[1]
+        n_estimators = int(params_dict['n_estimators'])
+        max_depth = int(params_dict['max_depth'])
+        min_samples_split = int(params_dict['min_samples_split'])
+        min_samples_leaf = int(params_dict['min_samples_leaf'])
+        max_features = int(params_dict['max_features'])
 
+        trainRF(split_balanced_data_dir,period_length,overlap_ratio,data_type_count,n_estimators,max_depth,
+                min_samples_leaf,min_samples_split,max_features,save_dir,if_save)
