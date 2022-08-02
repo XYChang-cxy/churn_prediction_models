@@ -9,7 +9,7 @@ from data_preprocess.developer_collaboration_network import *
 # 获取数量相关指标的数据并存储
 # id:仓库序号（1~30）
 # user_period_file: 存储用户观察区间的文件
-# period_length: 120或30,和user_period_file对应
+# period_length: 120/90/60/30,和user_period_file对应
 # count_type: 数据类型，可选项包括：issue、issue comment、pull、pull merged、review、review comment、commit
 def getCountDataAndSave(repo_id,user_period_file,period_length,count_type,save_dir):
     time_names = {
@@ -21,7 +21,7 @@ def getCountDataAndSave(repo_id,user_period_file,period_length,count_type,save_d
         'review comment':'create_time',
         'commit':'commit_time'
     }
-    if period_length == 120:
+    if period_length == 120 or period_length == 90 or period_length == 60:
         step = 10
     elif period_length == 30:
         step = 5
@@ -57,7 +57,9 @@ def getCountDataAndSave(repo_id,user_period_file,period_length,count_type,save_d
         f.write(line+'\n')
     f.close()
 
-    for user_period in user_periods:
+    for index in range(len(user_periods)):
+        print(index, '/', len(user_periods))
+        user_period = user_periods[index]
         user_id = user_period[0]
         startDay = user_period[1]
         endDay = user_period[2]
@@ -78,11 +80,11 @@ def getCountDataAndSave(repo_id,user_period_file,period_length,count_type,save_d
 # 获取开发者在协作网络中的介数中心性或节点加权度
 # repo_id: 仓库id
 # user_period_file: 存储用户观察区间的文件
-# period_length: 120或30,和user_period_file对应
+# period_length: 120/90/60/30,和user_period_file对应
 # data_type: 数据类型，可选项包括：betweeness、weighted degree
 # save_dir: 存储数据文件夹
 def getDCNDataAndSave(repo_id,user_period_file,period_length,data_type,save_dir):
-    if period_length == 120:
+    if period_length == 120 or period_length == 90 or period_length == 60:
         step = 10
     elif period_length == 30:
         step = 5
@@ -140,13 +142,106 @@ def getDCNDataAndSave(repo_id,user_period_file,period_length,data_type,save_dir)
         f.close()
 
 
+# 获取开发者在协作网络中的介数中心性和节点加权度
+# repo_id: 仓库id
+# user_period_file: 存储用户观察区间的文件
+# period_length: 120/90/60/30,和user_period_file对应
+# data_type_list: 数据类型，可选项包括：betweeness、weighted degree、betweeness和weighted degree
+# save_dir: 存储数据文件夹
+def getDCNDataAndSave2(repo_id,user_period_file,period_length,data_type_list,save_dir):
+    if period_length == 120 or period_length == 90 or period_length == 60:
+        step = 10
+    elif period_length == 30:
+        step = 5
+    else:
+        print('period length error!')
+        return
+    if 'betweeness' not in data_type_list and 'weighted degree' not in data_type_list:
+        return
+
+    user_periods = []
+    with open(user_period_file, 'r', encoding='utf-8')as f:
+        f.readline()
+        for line in f.readlines():
+            items = line.strip(',\n').split(',')
+            user_periods.append([int(items[0]), items[1], items[2]])
+    f.close()
+
+    user_period_file = user_period_file.replace('\\', '/')
+    user_type = user_period_file.split('/')[-1].split('_')[1]
+    tmp_str = user_period_file[user_period_file.rfind('/') + 1:]
+
+    filename1 = save_dir + '/' + user_type + '_' + data_type_list[0].replace(' ','_') \
+               + tmp_str[tmp_str.find('-'):]
+    print(filename1)
+    with open(filename1,'w',encoding='utf-8')as f:
+        line = 'user_id,'
+        for i in range(int(period_length/step)):
+            line+=str(i)+','
+        f.write(line+'\n')
+    f.close()
+
+    if len(data_type_list) > 1:
+        filename2 = save_dir + '/' + user_type + '_' + data_type_list[1].replace(' ', '_') \
+                    + tmp_str[tmp_str.find('-'):]
+        print(filename2)
+        with open(filename2, 'w', encoding='utf-8')as f:
+            line = 'user_id,'
+            for i in range(int(period_length / step)):
+                line += str(i) + ','
+            f.write(line + '\n')
+        f.close()
+
+    for index in range(len(user_periods)):
+        print(index,'/',len(user_periods))
+        user_period = user_periods[index]
+        user_id = user_period[0]
+        startDay = user_period[1]
+        endDay = user_period[2]
+        value_list_1 = []
+        value_list_2 = []
+        for i in range(int(period_length / step)):
+            start_day = (datetime.datetime.strptime(startDay, fmt_day) + datetime.timedelta(days=i * step)).strftime(
+                fmt_day)
+            end_day = (datetime.datetime.strptime(start_day, fmt_day) + datetime.timedelta(days=step)).strftime(fmt_day)
+            DCN, DCN0, index_user, user_index = getDeveloperCollaborationNetwork(repo_id,start_day,end_day)
+            data_type_1 = data_type_list[0]
+            if data_type_1 == 'betweeness':
+                value = getUserDCNWeightedDegrees(user_id,user_index,DCN)
+            else:
+                value = getUserBetweeness(user_id,DCN,user_index,index_user,True)
+            value_list_1.append(value)
+            if len(data_type_list)>1:
+                data_type_2 = data_type_list[1]
+                if data_type_2 == 'betweeness':
+                    value = getUserDCNWeightedDegrees(user_id, user_index, DCN)
+                else:
+                    value = getUserBetweeness(user_id, DCN, user_index, index_user, True)
+                value_list_2.append(value)
+
+        line = str(user_id) + ','
+        for value in value_list_1:
+            line += str(value) + ','
+        with open(filename1, 'a', encoding='utf-8')as f:
+            f.write(line + '\n')
+        f.close()
+
+        if len(data_type_list)>1:
+            line = str(user_id) + ','
+            for value in value_list_2:
+                line += str(value) + ','
+            with open(filename2, 'a', encoding='utf-8')as f:
+                f.write(line + '\n')
+            f.close()
+
+
 # 获取开发者接受到的响应数据并存储
 # repo_id: 仓库id
 # user_period_file: 存储用户观察区间的文件
-# period_length: 120或30,和user_period_file对应
+# period_length: 120/90/60/30,和user_period_file对应
 # data_type: 数据类型，可选项包括：issue comment、review、review comment
 def getReceivedDataAndSave(repo_id,user_period_file,period_length,data_type,save_dir):
-    if period_length == 120:
+    if period_length == 120 or period_length == 90 or period_length == 60:
         step = 10
     elif period_length == 30:
         step = 5

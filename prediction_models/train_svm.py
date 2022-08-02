@@ -10,6 +10,8 @@ import matplotlib
 import time
 import pandas as pd
 import random
+from prettytable import PrettyTable
+from prediction_models.result_analysis import get_proba_metric,get_proba_error
 from collections import Counter
 np.random.seed(1)  # for reproducibility
 
@@ -28,6 +30,10 @@ def getRandomIndex(num,ran):
 def getModelData(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12):
     if period_length == 120:
         col_count = 12*data_type_count
+    elif period_length == 90:
+        col_count = 9 * data_type_count
+    elif period_length == 60:
+        col_count = 6 * data_type_count
     elif period_length == 30:
         col_count = 6*data_type_count
     else:
@@ -66,50 +72,35 @@ def getModelData(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,dat
 
 
 # SVM模型训练
+# imp_metric:根据哪个指标来选取对预测结果（概率）进行二分类的最优阈值，可选参数包含：accuracy,roc_auc,precision,recall,f1_score
 def trainSVM(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12,
              kernel='rbf',C=1.0,gamma='auto',degree=3,
-             save_dir='svm_models',if_save=True):
+             save_dir='svm_models',if_save=True,imp_metric='roc_auc'):
     train_data,test_data,train_label,test_label = getModelData(split_balanced_data_dir,period_length,overlap_ratio,
                                                                data_type_count)
     if kernel == 'rbf' or kernel == 'RBF':
-        classifier = svm.SVC(kernel='rbf', C=C, gamma=gamma)
+        classifier = svm.SVC(kernel='rbf', C=C, gamma=gamma,probability=True)
     elif kernel == 'poly':
-        classifier = svm.SVC(kernel='poly', C=C, degree=degree)
+        classifier = svm.SVC(kernel='poly', C=C, degree=degree,probability=True)
     else:
-        classifier = svm.SVC(kernel='linear', C=C)
+        classifier = svm.SVC(kernel='linear', C=C,probability=True)
 
     classifier.fit(train_data, train_label)
 
-    train_pred = classifier.predict(train_data)
-    test_pred = classifier.predict(test_data)
+    train_pred_proba = classifier.predict_proba(train_data)
+    train_pred_proba = np.array([x[1] for x in train_pred_proba])
+    test_pred_proba = classifier.predict_proba(test_data)
+    test_pred_proba = np.array([x[1] for x in test_pred_proba])
 
-    print("训练集结果：")
-    print("accuracy score:\t", accuracy_score(train_label, train_pred))
-    print("auroc:\t",roc_auc_score(train_label,train_pred))
-    print("precision:\t", precision_score(train_label, train_pred))
-    print("recall:\t", recall_score(train_label, train_pred))
-    print("f1_score:\t", f1_score(train_label, train_pred,average='binary'))
+    print('\n训练集误差结果：\n')
+    get_proba_error(train_label, train_pred_proba, ['MSE', 'RMSE', 'MAE', 'SMAPE', 'R2'])
+    print('\n测试集误差结果：\n')
+    get_proba_error(test_label, test_pred_proba, ['MSE', 'RMSE', 'MAE', 'SMAPE', 'R2'])
 
-    '''count = 0
-    for i in range(len(train_pred)):
-        if train_label[i] * train_pred[i]<0:
-            print(i,train_label[i],train_pred[i])
-            count += 1
-    print(count)'''
-
-    print("\n测试集结果：")
-    print("accuracy score:\t", accuracy_score(test_label, test_pred))
-    print("auroc:\t", roc_auc_score(test_label,test_pred))
-    print("precision:\t", precision_score(test_label, test_pred))
-    print("recall:\t", recall_score(test_label, test_pred))
-    print("f1_score:\t", f1_score(test_label, test_pred, average='binary'))
-
-    '''count = 0
-    for i in range(len(test_pred)):
-        if test_label[i] * test_pred[i] < 0:
-            print(i, test_label[i], test_pred[i])
-            count += 1
-    print(count)'''
+    print('\n训练集不同指标结果：\n')
+    get_proba_metric(train_label, train_pred_proba, imp_metric=imp_metric)
+    print('\n测试集不同指标结果：\n')
+    get_proba_metric(test_label, test_pred_proba, imp_metric=imp_metric)
 
     if if_save:
         shutil.rmtree(save_dir)
@@ -120,8 +111,9 @@ def trainSVM(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,data_ty
 
 # GridSearch调参
 # https://blog.csdn.net/aliceyangxi1987/article/details/73769950
+# imp_metric:根据哪个指标来选取对预测结果（概率）进行二分类的最优阈值，可选参数包含：accuracy,roc_auc,precision,recall,f1_score
 def gridSearchForSVM(split_balanced_data_dir,period_length=120,overlap_ratio=0.0,data_type_count=12,
-                     scoring='roc_auc',work_dir='.',save_dir='svm_models',if_save=True):
+                     scoring='roc_auc',work_dir='.',save_dir='svm_models',if_save=True,imp_metric='roc_auc'):
     train_data, test_data, train_label, test_label = getModelData(split_balanced_data_dir, period_length, overlap_ratio,
                                                                   data_type_count)
     tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1e-4, 1e-3, 0.01, 0.1, 1, 5, 10],
@@ -135,7 +127,7 @@ def gridSearchForSVM(split_balanced_data_dir,period_length=120,overlap_ratio=0.0
         print()
 
         # 调用 GridSearchCV，将 SVC(), tuned_parameters, cv=5, 还有 scoring 传递进去，
-        clf = GridSearchCV(svm.SVC(), tuned_parameters, return_train_score=True,
+        clf = GridSearchCV(svm.SVC(probability=True), tuned_parameters, return_train_score=True,
                            scoring=score,verbose=2, refit=True, cv=5, n_jobs=-1)
         # 用训练集训练这个学习器 clf
         clf.fit(train_data, train_label)
@@ -161,21 +153,42 @@ def gridSearchForSVM(split_balanced_data_dir,period_length=120,overlap_ratio=0.0
         print()
 
         best_model = clf.best_estimator_
-        y_true,y_pred = test_label,best_model.predict(test_data)
-        print('best model classification report:\n')
-        print(classification_report(y_true,y_pred))
+        test_pred = best_model.predict(test_data)
 
-        test_pred=y_pred
-        print("\n测试集结果：")
-        print("accuracy score:\t", accuracy_score(test_label, test_pred))
-        print("auroc:\t", roc_auc_score(test_label, test_pred))
-        print("precision:\t", precision_score(test_label, test_pred))
-        print("recall:\t", recall_score(test_label, test_pred))
-        print("f1_score:\t", f1_score(test_label, test_pred, average='binary'))
+        train_pred_proba = best_model.predict_proba(train_data)
+        train_pred_proba = np.array([x[1] for x in train_pred_proba])
+        test_pred_proba = best_model.predict_proba(test_data)
+        test_pred_proba = np.array([x[1] for x in test_pred_proba])
 
-        train_pred = best_model.predict(train_data)
+        print('\n训练集误差结果：\n')
+        train_error_results = get_proba_error(train_label,train_pred_proba,['MSE','RMSE','MAE','SMAPE','R2'])
+        print('\n测试集误差结果：\n')
+        test_error_results = get_proba_error(test_label,test_pred_proba,['MSE','RMSE','MAE','SMAPE','R2'])
+
+        print('\n训练集不同指标结果：\n')
+        train_metric_results = get_proba_metric(train_label,train_pred_proba,imp_metric=imp_metric)
+        print('\n测试集不同指标结果：\n')
+        test_metric_results = get_proba_metric(test_label,test_pred_proba,imp_metric=imp_metric)
 
         local_time = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime())
+
+        tab1 = PrettyTable(['','MSE','RMSE','MAE','SMAPE','R2'])
+        tab1.add_row(['train dataset',train_error_results['MSE'],train_error_results['RMSE'],train_error_results['MAE'],
+                      train_error_results['SMAPE'],train_error_results['R2']])
+        tab1.add_row(['test_dataset',test_error_results['MSE'],test_error_results['RMSE'],test_error_results['MAE'],
+                      test_error_results['SMAPE'],test_error_results['R2']])
+        tab2 = PrettyTable(['dataset(threshold)','accuracy','roc_auc','precision','recall','f1_score'])
+        new_list = ['train dataset('+"{0:.2f}".format(train_metric_results[0])+')']
+        new_list.extend(train_metric_results[1])
+        tab2.add_row(new_list)
+        new_list = ['test dataset(' + "{0:.2f}".format(test_metric_results[0]) + ')']
+        new_list.extend(test_metric_results[1])
+        tab2.add_row(new_list)
+        new_list = ['test dataset(0.5)']
+        new_list.extend([accuracy_score(test_label,test_pred),roc_auc_score(test_label,test_pred),
+                         precision_score(test_label,test_pred),recall_score(test_label,test_pred),
+                         f1_score(test_label,test_pred)])
+        tab2.add_row(new_list)
 
         ################################################################################3
         with open(work_dir+'/svm_result.csv', 'a', encoding='utf-8')as f:
@@ -183,17 +196,9 @@ def gridSearchForSVM(split_balanced_data_dir,period_length=120,overlap_ratio=0.0
             tmp_index = split_balanced_data_dir.find('repo')
             f.write(split_balanced_data_dir[tmp_index:tmp_index + 7] + ',' +
                     str(period_length) + ',' + str(overlap_ratio) + ',' + str(scoring) + ',\n')
-            f.write('train accuracy,' + str(accuracy_score(train_label, train_pred)) + ',\n')
-            f.write('train precision,' + str(precision_score(train_label, train_pred)) + ',\n')
-            f.write('train recall,' + str(recall_score(train_label, train_pred)) + ',\n')
-            f.write('train f1_score,' + str(f1_score(train_label, train_pred, average='binary')) + ',\n')
-            f.write('train auroc,' + str(roc_auc_score(train_label, train_pred)) + ',\n')
-
-            f.write('test accuracy,' + str(accuracy_score(test_label, test_pred)) + ',\n')
-            f.write('test precision,' + str(precision_score(test_label, test_pred)) + ',\n')
-            f.write('test recall,' + str(recall_score(test_label, test_pred)) + ',\n')
-            f.write('test f1_score,' + str(f1_score(test_label, test_pred, average='binary')) + ',\n')
-            f.write('test auroc,' + str(roc_auc_score(test_label, test_pred)) + ',\n')
+            f.write(str(tab1)+'\n')
+            f.write('用于确定最优阈值的指标为：'+imp_metric+'\n')
+            f.write(str(tab2)+'\n')
             f.write('\n')
         #################################################################################
         with open(work_dir+'/model_params/svm_params.txt','w',encoding='utf-8')as f:
@@ -218,11 +223,11 @@ def gridSearchForSVM(split_balanced_data_dir,period_length=120,overlap_ratio=0.0
 # 训练SVM模型的统一接口，可以选择grid_search调参或直接训练
 def train_svm(train_data_dir,repo_id,period_length=120,overlap_ratio=0.0,data_type_count=12,scoring='roc_auc',
               grid_search_control=False,model_params_dir='model_params',prediction_work_dir='.',
-              save_dir='svm_models',if_save=True):
+              save_dir='svm_models',if_save=True,imp_metric='roc_auc'):
     split_balanced_data_dir = train_data_dir+'/repo_'+str(repo_id)+'/split_balanced_data'
     if grid_search_control:
         gridSearchForSVM(split_balanced_data_dir,period_length,overlap_ratio,data_type_count,scoring,
-                         prediction_work_dir,save_dir,if_save)
+                         prediction_work_dir,save_dir,if_save,imp_metric)
     else:
         model_params_file = model_params_dir + '/svm_params.txt'
         params_dict=dict()
@@ -234,16 +239,15 @@ def train_svm(train_data_dir,repo_id,period_length=120,overlap_ratio=0.0,data_ty
         C = float(params_dict['C'])
         if kernel == 'linear':
             trainSVM(split_balanced_data_dir, period_length, overlap_ratio, data_type_count, kernel, C,
-                     save_dir=save_dir,
-                     if_save=if_save)
+                     save_dir=save_dir,if_save=if_save,imp_metric=imp_metric)
         elif kernel == 'rbf':
             gamma = float(params_dict['gamma'])
             trainSVM(split_balanced_data_dir, period_length, overlap_ratio, data_type_count, kernel, C, gamma,
-                     save_dir=save_dir, if_save=if_save)
+                     save_dir=save_dir, if_save=if_save,imp_metric=imp_metric)
         else:
             degree = int(params_dict['degree'])
             trainSVM(split_balanced_data_dir, period_length, overlap_ratio, data_type_count, kernel, C,
-                     degree=degree, save_dir=save_dir, if_save=if_save)
+                     degree=degree, save_dir=save_dir, if_save=if_save,imp_metric=imp_metric)
 
 
 if __name__ == '__main__':

@@ -105,7 +105,7 @@ def saveUserActivePeriod(repo_id,startDay,endDay,save_dir,churn_limit_weeks,time
                 end = (datetime.datetime.strptime(end_day,fmt_day)-
                        datetime.timedelta(days=user_inactive_weeks[user_id]*7)).strftime(fmt_day)
                 start = (datetime.datetime.strptime(end_day,fmt_day)-
-                         datetime.timedelta(days=user_retain_weeks[user_id]*7)).strftime(fmt_day)
+                         datetime.timedelta(days=(user_retain_weeks[user_id]+1)*7)).strftime(fmt_day)
                 days = (datetime.datetime.strptime(end,fmt_day)-datetime.datetime.strptime(start,fmt_day)).days
                 time_list.append(days)
                 f.write(str(user_id)+','+start+','+end+','+str(days)+',1,\n')
@@ -138,7 +138,7 @@ def saveUserActivePeriod(repo_id,startDay,endDay,save_dir,churn_limit_weeks,time
 # user_type: 用户类型，'churner','loyaler'
 # user_active_period_file: 存储所有用户活跃时间段的文件
 # churn_limit_weeks: 流失期限（单位为周）
-# period_length: 获取数据的时间段长度，该长度固定，单位为天，一季度是120，一个月是30
+# period_length: 获取数据的时间段长度，该长度固定，单位为天，120/90/60/30
 # overlap_ratio: 当user_type='loyaler'时有效，表示获取历史数据时同一开发者不同数据区间的重合度
 # time_threshold:划分开发者的时间阈值，可以指定，如果是-1则使用user_active_period_file中的阈值(80百分位数)
 def getModelUserPeriod(repo_id,user_type,save_dir,user_active_period_file,churn_limit_weeks,period_length=120,overlap_ratio=0.0,
@@ -203,7 +203,7 @@ def getModelUserPeriod(repo_id,user_type,save_dir,user_active_period_file,churn_
 # 获取用于模型实际预测的用户和对应活跃时间
 # repo_id:仓库id
 # user_active_period_file: 存储所有用户活跃时间段的文件
-# period_length: 获取数据的时间段长度，该长度固定，单位为天，一季度是120，一个月是30
+# period_length: 获取数据的时间段长度，该长度固定，单位为天，120/90/60/30
 # time_threshold:划分开发者的时间阈值，可以指定，如果是-1则使用user_active_period_file中的阈值(80百分位数)
 def getPredictionUserPeriod(repo_id,save_dir,user_active_period_file,period_length=120,time_threshold=-1):
     if time_threshold == -1:

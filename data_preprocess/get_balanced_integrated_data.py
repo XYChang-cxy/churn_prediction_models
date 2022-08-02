@@ -16,7 +16,7 @@ def getRandomIndex(num,ran):
 
 # 根据标准化后的正负样本的整合文件，先划分训练集和测试集，然后对训练集进行SMOTE过采样
 # 注：直接对所有数据进行过采样，没有先划分训练集和测试集，该方法被舍弃
-# period_length: 120或30
+# period_length: 120天/90天/60天/30天
 # overlap_ratio: 当user_type为loyaler时，获取数据时同一开发者不同区间的重叠度
 # split_mode:划分训练集和测试集的模式；0--使用train_test_split划分；1--严格按照比例划分
 def getSplitBanlancedDataAndSave(normalized_data_dir,save_dir,period_length, overlap_ratio,
@@ -35,6 +35,10 @@ def getSplitBanlancedDataAndSave(normalized_data_dir,save_dir,period_length, ove
         ]
     if period_length == 120:
         col_count = 12*len(data_type_list)
+    elif period_length == 90:
+        col_count = 9 * len(data_type_list)
+    elif period_length == 60:
+        col_count = 6 * len(data_type_list)
     elif period_length == 30:
         col_count = 6*len(data_type_list)
     else:

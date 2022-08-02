@@ -10,7 +10,7 @@ import os
 # 获取用于训练的整合的数据并存储
 # id:仓库序号（1~30）
 # user_type: churner或loyaler
-# period_length: 120或30
+# period_length: 120/90/60/30
 # overlap_ratio: 当user_type为loyaler时，获取数据时同一开发者不同区间的重叠度
 # 注：period_length和overlap_ratio共同用于确定文件版本号
 # detailed_data_dir: 存储训练样本详细数据的文件夹
@@ -35,7 +35,7 @@ def getIntegratedDataAndSave(detailed_data_dir, save_dir, user_type, period_leng
     if user_type != 'churner' and user_type != 'loyaler':
         print('User type error!')
         return
-    if period_length == 120:
+    if period_length == 120 or period_length == 90 or period_length == 60:
         step = 10
     elif period_length == 30:
         step = 5
@@ -103,7 +103,7 @@ def getIntegratedDataAndSave(detailed_data_dir, save_dir, user_type, period_leng
 
 # 获取用于实际预测的整合的数据并存储
 # id:仓库序号（1~30）
-# period_length: 120或30
+# period_length: 120/90/60/30
 # 注：period_length和overlap_ratio共同用于确定文件版本号
 # detailed_data_dir: 存储训练样本详细数据的文件夹
 # train_max_min: 字典类型，训练集中不同类型数据的最大值和最小值，用于统一标准化
@@ -122,7 +122,7 @@ def getIntegratedPredDataAndSave(detailed_data_dir, save_dir, period_length,trai
             'received review comment'
         ]
 
-    if period_length == 120:
+    if period_length == 120 or period_length == 90 or period_length == 60:
         step = 10
     elif period_length == 30:
         step = 5

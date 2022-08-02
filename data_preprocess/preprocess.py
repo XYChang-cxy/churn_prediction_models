@@ -3,11 +3,12 @@ import numpy as np
 import pandas as pd
 import os
 import shutil
+import time
 from joblib import dump,load
 from collections import Counter
 from data_preprocess.database_connect import *
 from data_preprocess.get_user import saveUserActivePeriod,getModelUserPeriod,getPredictionUserPeriod
-from data_preprocess.get_detailed_data import getCountDataAndSave,getDCNDataAndSave,getReceivedDataAndSave
+from data_preprocess.get_detailed_data import getCountDataAndSave,getDCNDataAndSave,getDCNDataAndSave2,getReceivedDataAndSave
 from data_preprocess.get_integrated_data import getIntegratedDataAndSave,getIntegratedPredDataAndSave
 from data_preprocess.get_balanced_integrated_data import getSplitBanlancedDataAndSave
 from data_preprocess.get_max_min_values import getMaxMinValues
@@ -27,11 +28,10 @@ data_type_list = [
 '''train_data_dir = 'train_data'
 prediction_data_dir = 'prediction_data' '''
 
-
 # 获取用于模型训练的数据，该函数会在train_data文件夹创建相应数据文件，无返回值
 # repo_id: 仓库id
 # train_data_dir: 存储用于训练模型的数据的文件夹
-# period_length: 输入数据的时间跨度，目前仅支持120天或30天
+# period_length: 输入数据的时间跨度，目前仅支持120天/90天/60天/30天
 # overlap_ratio: 负样本（忠诚开发者数据）采样区间重合度，默认为0.0,即不重合
 # churn_limit_weeks: 流失期限，默认14周
 # train_end_time: 用于获取训练数据的截止时间，（开始时间是仓库创建时间）
@@ -109,14 +109,15 @@ def train_data_preprocess(repo_id,train_data_dir,period_length=120,overlap_ratio
                 overlap_ratio) + '.csv'
         for data_type in data_type_list:
             if data_type == 'betweeness' or data_type == 'weighted degree':
-                getDCNDataAndSave(repo_id, repo_data_dir + '/' + period_filename, period_length, data_type,
-                                  repo_data_dir + '/detailed_data')
+                continue
             elif data_type.find('received') != -1:
                 getReceivedDataAndSave(repo_id, repo_data_dir + '/' + period_filename, period_length, data_type[9:],
                                        repo_data_dir + '/detailed_data')
             else:
                 getCountDataAndSave(repo_id, repo_data_dir + '/' + period_filename, period_length, data_type,
                                     repo_data_dir + '/detailed_data')
+        getDCNDataAndSave2(repo_id, repo_data_dir + '/' + period_filename, period_length,
+                           ['betweeness', 'weighted degree'], repo_data_dir + '/detailed_data')
 
     if continue_running:
         s = 'Y'
@@ -147,22 +148,24 @@ def train_data_preprocess(repo_id,train_data_dir,period_length=120,overlap_ratio
 # repo_id: 仓库id
 # train_data_dir: 存储用于训练模型的数据的文件夹
 # prediction_data_dir: 存储用于模型预测的数据的文件夹
-# period_length: 输入数据的时间跨度，目前仅支持120天或30天
+# period_length: 输入数据的时间跨度，目前仅支持120天/90天/60天/30天
 # churn_limit_weeks: 流失期限，默认14周
 # time_threshold_days: 剔除临时开发者的活动时间阈值，默认28天
 # continue_runing: 是否在处理数据过程中不间断运行，默认为True
 # 返回值：需要预测的user_id列表，和对应的模型输入数据列表
 def prediction_data_preprocess(repo_id,train_data_dir,prediction_data_dir,period_length=120,churn_limit_weeks=14,time_threshold_days=28,
-                               continue_running=True):
+                               continue_running=False):
 
     repo_info = getRepoInfoFromTable(repo_id,['created_at'])
     create_time = repo_info[0][0:10]
     end_time = datetime.datetime.now().strftime(fmt_day)
+    end_time = '2022-06-09'##################################################################################
 
     churn_limit_days = churn_limit_weeks*7  # 流失期限，单位是天
 
     # 获取数据的开始时间,即 “流失期限天数+输入数据天数” 前
-    start_time = (datetime.datetime.now()-datetime.timedelta(days=churn_limit_days+period_length)).strftime(fmt_day)
+    start_time = (datetime.datetime.strptime(end_time, fmt_day) - datetime.timedelta(
+        days=churn_limit_days + period_length)).strftime(fmt_day)
     if start_time < create_time:
         start_time = create_time
 
@@ -208,14 +211,15 @@ def prediction_data_preprocess(repo_id,train_data_dir,prediction_data_dir,period
     period_filename = 'repo_users_period-' + str(period_length) + '.csv'
     for data_type in data_type_list:
         if data_type == 'betweeness' or data_type == 'weighted degree':
-            getDCNDataAndSave(repo_id, repo_data_dir + '/' + period_filename, period_length, data_type,
-                              repo_data_dir + '/detailed_data')
+            continue
         elif data_type.find('received') != -1:
             getReceivedDataAndSave(repo_id, repo_data_dir + '/' + period_filename, period_length, data_type[9:],
                                    repo_data_dir + '/detailed_data')
         else:
             getCountDataAndSave(repo_id, repo_data_dir + '/' + period_filename, period_length, data_type,
                                 repo_data_dir + '/detailed_data')
+    getDCNDataAndSave2(repo_id, repo_data_dir + '/' + period_filename, period_length, ['betweeness', 'weighted degree'],
+                      repo_data_dir + '/detailed_data')
 
     if continue_running:
         s = 'Y'
@@ -235,7 +239,7 @@ def prediction_data_preprocess(repo_id,train_data_dir,prediction_data_dir,period
                                  train_max_min,data_type_list)
 
     print('Data preprocessing finished.')
-    return get_existed_prediction_data(repo_data_dir+'/normalized_data')
+    return get_existed_prediction_data(repo_data_dir+'/normalized_data/user_integration-'+str(period_length)+'.csv')
 
 
 # 获取训练集各类数据的最大值和最小值
@@ -273,6 +277,10 @@ def get_existed_prediction_data(file_path):
     period_length = int(file_path[:-4].split('-')[-1])
     if period_length == 120:
         col_count = 12 * len(data_type_list)
+    elif period_length == 90:
+        col_count = 9 * len(data_type_list)
+    elif period_length == 60:
+        col_count = 6 * len(data_type_list)
     elif period_length == 30:
         col_count = 6 * len(data_type_list)
     else:
@@ -295,12 +303,14 @@ if __name__ == '__main__':
     prediction_data_dir = 'prediction_data'
 
     # 测试一：生成预测数据集，并返回
-    user_id_list,input_data = prediction_data_preprocess(repo_id,train_data_dir,prediction_data_dir,
-                                                         period_length,churn_limit_weeks,time_threshold_days)
-    print(user_id_list)
-    print(input_data)
+    # user_id_list,input_data = prediction_data_preprocess(repo_id,train_data_dir,prediction_data_dir,
+    #                                                      period_length,churn_limit_weeks,time_threshold_days,
+    #                                                      True)
+    # print(user_id_list)
+    # print(input_data)
 
-    prediction_file = prediction_data_dir+'/repo_'+str(repo_id)+'/normalized_data'
+    prediction_file = prediction_data_dir+'/repo_'+str(repo_id)+'/normalized_data/user_integration-'\
+                      +str(period_length)+'.csv'
     # 测试二：根据生成的预测数据集文件，直接返回数据
     # user_id_list,input_data = get_existed_prediction_data(prediction_file)
     # print(len(user_id_list))
@@ -316,7 +326,12 @@ if __name__ == '__main__':
     for i in range(len(user_id_list)):
         print(user_id_list[i],'\t\t',y_pred[i])
     print(Counter(y_pred))'''
-
+    churn_limit_weeks = 14
+    period_length_list = [60]
+    time_threshold_days = 0.6
     # 测试四：训练集数据预处理
-    # train_data_preprocess(repo_id,train_data_dir,period_length,overlap_ratio,churn_limit_weeks,train_end_time,False,
-    #                       time_threshold=time_threshold_days)
+    for period_length in period_length_list:
+        train_data_preprocess(repo_id, train_data_dir, period_length, overlap_ratio, churn_limit_weeks, train_end_time,
+                              True, time_threshold=time_threshold_days)
+        time.sleep(900)
+

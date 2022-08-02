@@ -1,25 +1,185 @@
-repo_20,120,0.0,roc_auc,
-train accuracy,0.9962311557788944,
-train precision,0.9949874686716792,
-train recall,0.9974874371859297,
-train f1_score,0.9962358845671268,
-train auroc,0.9962311557788945,
-test accuracy,0.875,
-test precision,0.9090909090909091,
-test recall,0.9,
-test f1_score,0.9045226130653266,
-test auroc,0.8634615384615383,
+time: 2022-06-29 11:05:31
+churn_limit=14,time_threshold_days=28,
+repo_86,120,0.0,roc_auc,
+train accuracy,0.9800861141011841,
+train precision,0.9616977225672878,
+train recall,1.0,
+train f1_score,0.9804749340369393,
+train auroc,0.9800861141011841,
+test accuracy,0.8069620253164557,
+test precision,0.6375,
+test recall,0.6144578313253012,
+test f1_score,0.6257668711656442,
+test auroc,0.7449971560059983,
 
-time: 2022-06-17 10:49:37
-repo_20,120,0.0,roc_auc,
-train accuracy,0.9962311557788944,
-train precision,0.9949874686716792,
-train recall,0.9974874371859297,
-train f1_score,0.9962358845671268,
-train auroc,0.9962311557788945,
-test accuracy,0.875,
-test precision,0.9090909090909091,
-test recall,0.9,
-test f1_score,0.9045226130653266,
-test auroc,0.8634615384615383,
+time: 2022-06-29 11:30:46
+churn_limit=14,time_threshold_days=28,
+repo_86,90,0.0,roc_auc,
+train accuracy,0.9696836555360281,
+train precision,0.9428334714167357,
+train recall,1.0,
+train f1_score,0.9705756929637527,
+train auroc,0.9696836555360282,
+test accuracy,0.8070652173913043,
+test precision,0.5714285714285714,
+test recall,0.5783132530120482,
+test f1_score,0.5748502994011976,
+test auroc,0.7259987317691821,
+
+time: 2022-06-29 11:54:22
+churn_limit=14,time_threshold_days=28,
+repo_86,60,0.0,roc_auc,
+train accuracy,0.9768694550063372,
+train precision,0.9557843731072078,
+train recall,1.0,
+train f1_score,0.9773923815422731,
+train auroc,0.9768694550063372,
+test accuracy,0.8556485355648535,
+test precision,0.5921052631578947,
+test recall,0.5421686746987951,
+test f1_score,0.5660377358490565,
+test auroc,0.7318438310202837,
+
+time: 2022-06-29 12:22:39
+churn_limit=14,time_threshold_days=28,
+repo_86,30,0.0,roc_auc,
+train accuracy,0.9705146533238027,
+train precision,0.9494708091498805,
+train recall,0.9939242315939957,
+train f1_score,0.9711891042430593,
+train auroc,0.9705146533238028,
+test accuracy,0.8659003831417624,
+test precision,0.40350877192982454,
+test recall,0.5542168674698795,
+test f1_score,0.467005076142132,
+test auroc,0.7285370051635112,
+
+time: 2022-06-30 08:35:38
+churn_limit=19,time_threshold_days=28,
+repo_86,120,0.0,roc_auc,
+train accuracy,0.985224586288416,
+train precision,0.9712973593570609,
+train recall,1.0,
+train f1_score,0.9854397204426325,
+train auroc,0.9852245862884161,
+test accuracy,0.8145454545454546,
+test precision,0.6153846153846154,
+test recall,0.5079365079365079,
+test f1_score,0.5565217391304348,
+test auroc,0.7067984426474992,
+
+time: 2022-06-30 08:51:44
+churn_limit=19,time_threshold_days=28,
+repo_86,90,0.0,roc_auc,
+train accuracy,0.9838403041825095,
+train precision,0.9686924493554327,
+train recall,1.0,
+train f1_score,0.9840972871842844,
+train auroc,0.9838403041825095,
+test accuracy,0.8374233128834356,
+test precision,0.5892857142857143,
+test recall,0.5238095238095238,
+test f1_score,0.5546218487394958,
+test auroc,0.718178526163317,
+
+time: 2022-06-30 09:12:44
+churn_limit=19,time_threshold_days=28,
+repo_86,60,0.0,roc_auc,
+train accuracy,0.9789944903581267,
+train precision,0.9596827495042961,
+train recall,1.0,
+train f1_score,0.9794266441821248,
+train auroc,0.9789944903581268,
+test accuracy,0.8544600938967136,
+test precision,0.5087719298245614,
+test recall,0.4603174603174603,
+test f1_score,0.48333333333333334,
+test auroc,0.6915912370457824,
+
+time: 2022-06-30 10:15:21
+churn_limit=19,time_threshold_days=28,
+repo_86,30,0.0,roc_auc,
+train accuracy,0.965055910543131,
+train precision,0.9353271028037383,
+train recall,0.9992012779552716,
+train f1_score,0.966209692990925,
+train auroc,0.9650559105431309,
+test accuracy,0.8664731494920174,
+test precision,0.33707865168539325,
+test recall,0.47619047619047616,
+test f1_score,0.39473684210526316,
+test auroc,0.6909706374562605,
+
+time: 2022-07-01 08:45:31
+churn_limit=19,time_threshold_days=84,
+repo_86,120,0.0,roc_auc,
+train accuracy,0.9884969325153374,
+train precision,0.9789473684210527,
+train recall,0.9984662576687117,
+train f1_score,0.9886104783599089,
+train auroc,0.9884969325153375,
+test accuracy,0.812807881773399,
+test precision,0.5142857142857142,
+test recall,0.46153846153846156,
+test f1_score,0.48648648648648646,
+test auroc,0.6789399624765479,
+
+time: 2022-07-01 09:05:39
+churn_limit=19,time_threshold_days=84,
+repo_86,90,0.0,roc_auc,
+train accuracy,0.9876390605686032,
+train precision,0.9770253929866989,
+train recall,0.9987639060568603,
+train f1_score,0.9877750611246945,
+train auroc,0.9876390605686031,
+test accuracy,0.859504132231405,
+test precision,0.5757575757575758,
+test recall,0.48717948717948717,
+test f1_score,0.5277777777777778,
+test auroc,0.7091069849690539,
+
+time: 2022-07-01 09:21:55
+churn_limit=19,time_threshold_days=84,
+repo_86,60,0.0,roc_auc,
+train accuracy,0.9837719298245614,
+train precision,0.9693617021276596,
+train recall,0.9991228070175439,
+train f1_score,0.9840172786177106,
+train auroc,0.9837719298245614,
+test accuracy,0.8734567901234568,
+test precision,0.47368421052631576,
+test recall,0.46153846153846156,
+test f1_score,0.4675324675324675,
+test auroc,0.6956815114709852,
+
+time: 2022-07-01 09:45:22
+churn_limit=19,time_threshold_days=84,
+repo_86,30,0.0,roc_auc,
+train accuracy,0.9712212212212212,
+train precision,0.9472684085510689,
+train recall,0.997997997997998,
+train f1_score,0.9719717280038995,
+train auroc,0.9712212212212212,
+test accuracy,0.8905380333951762,
+test precision,0.32142857142857145,
+test recall,0.46153846153846156,
+test f1_score,0.37894736842105264,
+test auroc,0.6927692307692308,
+
+time: 2022-07-03 16:18:43
+repo_86,120,0.0,roc_auc,
++---------------+---------------------+---------------------+---------------------+--------------------+---------------------+
+|               |         MSE         |         RMSE        |         MAE         |       SMAPE        |          R2         |
++---------------+---------------------+---------------------+---------------------+--------------------+---------------------+
+| train dataset | 0.02287118209435022 | 0.15123221248910637 | 0.12132854667295231 | 106.0196891896849  |  0.9085152716225992 |
+|  test_dataset |  0.1326169332987874 |  0.3641660792808515 |  0.3142466434672266 | 175.34228190401123 | 0.14555797305976703 |
++---------------+---------------------+---------------------+---------------------+--------------------+---------------------+
+用于确定最优阈值的指标为：roc_auc
++---------------------+--------------------+--------------------+---------------------+---------------------+---------------------+
+|  dataset(threshold) |      accuracy      |      roc_auc       |      precision      |        recall       |       f1_score      |
++---------------------+--------------------+--------------------+---------------------+---------------------+---------------------+
+| train dataset(0.60) | 0.9961656441717791 | 0.9961656441717792 |  0.9938931297709923 |  0.9984662576687117 |  0.9961744452945678 |
+|  test dataset(0.28) | 0.6945812807881774 | 0.7816604127579738 | 0.37894736842105264 |  0.9230769230769231 |  0.5373134328358209 |
+|  test dataset(0.5)  | 0.812807881773399  | 0.6789399624765479 |  0.5142857142857142 | 0.46153846153846156 | 0.48648648648648646 |
++---------------------+--------------------+--------------------+---------------------+---------------------+---------------------+
 
